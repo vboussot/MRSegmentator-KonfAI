@@ -1,0 +1,4 @@
+__pycache__
+mrsegmentator_konfai.egg-info
+.env
+*.mha
