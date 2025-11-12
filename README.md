@@ -72,7 +72,7 @@ mrsegmentator-konfai -i subject01.nii.gz -o seg_subject01.nii.gz --gpu 0 -f 3
 ## 📖 Reference
 
 This package is based on the original **[MRSegmentator](https://github.com/hhaentze/MRSegmentator)** by  
-**Henrik Haentze et al.**, a deep-learning-based method for brain MRI segmentation.
+**Henrik Haentze et al.**, a deep-learning-based method for full body MRI segmentation.
 
 For scientific use, please cite the original MRSegmentator work in addition to this CLI tool.
 

@@ -1,14 +1,12 @@
 import argparse
 import importlib.metadata
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 import SimpleITK as sitk  # noqa: N813
-from huggingface_hub import hf_hub_download
 
 SUPPORTED_EXTENSIONS = [
     "mha",
@@ -21,35 +19,7 @@ SUPPORTED_EXTENSIONS = [
     "gipl.gz",  # GIPL
 ]
 
-
-def ensure_konfai_available() -> None:
-    from shutil import which
-
-    if which("konfai") is None:
-        print("❌ 'konfai' CLI not found in PATH. Install/activate KonfAI.", file=sys.stderr)
-        sys.exit(1)
-
-
-def download_models(folds: int) -> tuple[list[str], str, str]:
-    try:
-        models_path = []
-        for model_name in [f"fold_{f}.pt" for f in range(folds)]:
-            models_path.append(
-                hf_hub_download(
-                    repo_id="VBoussot/MRSegmentator-KonfAI", filename=model_name, repo_type="model", revision="main"
-                )
-            )
-        model_path = hf_hub_download(
-            repo_id="VBoussot/MRSegmentator-KonfAI", filename="Model.py", repo_type="model", revision="main"
-        )
-
-        inference_file_path = hf_hub_download(
-            repo_id="VBoussot/MRSegmentator-KonfAI", filename="Prediction.yml", repo_type="model", revision="main"
-        )
-        return models_path, inference_file_path, model_path
-    except Exception as e:
-        print(f"❌ Error downloading models/config from Hugging Face: {e}", file=sys.stderr)
-        sys.exit(1)
+MR_SEGMENTATOR_KONFAI_REPO = "VBoussot/MRSegmentator-KonfAI"
 
 
 def main():
@@ -119,18 +89,11 @@ def main():
         print(f"   Supported: {', '.join(SUPPORTED_EXTENSIONS)}", file=sys.stderr)
         sys.exit(1)
 
-    ensure_konfai_available()
-    models_path, inference_file_path, model_path = download_models(args.folds)
-
     with tempfile.TemporaryDirectory() as tmpdir_str:
         tmpdir = Path(tmpdir_str)
         dataset_p = tmpdir / "Dataset" / "P001"
         dataset_p.mkdir(parents=True, exist_ok=True)
-        try:
-            shutil.copy2(model_path, tmpdir / "Model.py")
-        except Exception as e:
-            print(f"❌ Cannot copy Model.py into temp dir: {e}", file=sys.stderr)
-            sys.exit(1)
+
         # Convert input to expected NIfTI
         vol_out = dataset_p / "Volume.nii.gz"
         try:
@@ -146,12 +109,12 @@ def main():
 
         cmd = [
             "konfai",
-            "PREDICTION",
+            "PREDICTION_HF",
             "-y",
             "--MODEL",
-            ":".join(models_path),
+            str(args.folds),
             "--config",
-            inference_file_path,
+            f"{MR_SEGMENTATOR_KONFAI_REPO}:MRSegmentator",
         ]
         if args.gpu:
             cmd += ["--gpu", args.gpu]
